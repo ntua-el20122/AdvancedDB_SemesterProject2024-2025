@@ -1,0 +1,63 @@
+Description,Details
+Execution Plan,"== Parsed Logical Plan ==
+'Project [ZCTA10#74286, COMM#74269, total_pop#74456L, (total_houses#74454L * Estimated Median Income#74423) AS total_money#74475]
++- Join Inner, (cast(ZCTA10#74286 as int) = Zip Code#74408)
+   :- Aggregate [COMM#74269, ZCTA10#74286], [COMM#74269, ZCTA10#74286, sum(HOUSING10#74275L) AS total_houses#74454L, sum(POP_2010#74278L) AS total_pop#74456L]
+   :  +- Filter (((HOUSING10#74275L >= cast(0 as bigint)) AND (POP_2010#74278L >= cast(0 as bigint))) AND (CITY#74267 = Los Angeles))
+   :     +- Project [properties#74257.BG10 AS BG10#74262, properties#74257.BG10FIP10 AS BG10FIP10#74263, properties#74257.BG12 AS BG12#74264, properties#74257.CB10 AS CB10#74265, properties#74257.CEN_FIP13 AS CEN_FIP13#74266, properties#74257.CITY AS CITY#74267, properties#74257.CITYCOM AS CITYCOM#74268, properties#74257.COMM AS COMM#74269, properties#74257.CT10 AS CT10#74270, properties#74257.CT12 AS CT12#74271, properties#74257.CTCB10 AS CTCB10#74272, properties#74257.HD_2012 AS HD_2012#74273L, properties#74257.HD_NAME AS HD_NAME#74274, properties#74257.HOUSING10 AS HOUSING10#74275L, properties#74257.LA_FIP10 AS LA_FIP10#74276, properties#74257.OBJECTID AS OBJECTID#74277L, properties#74257.POP_2010 AS POP_2010#74278L, properties#74257.PUMA10 AS PUMA10#74279, properties#74257.SPA_2012 AS SPA_2012#74280L, properties#74257.SPA_NAME AS SPA_NAME#74281, properties#74257.SUP_DIST AS SUP_DIST#74282, properties#74257.SUP_LABEL AS SUP_LABEL#74283, properties#74257.ShapeSTArea AS ShapeSTArea#74284, properties#74257.ShapeSTLength AS ShapeSTLength#74285, ... 2 more fields]
+   :        +- Project [features#74253.geometry AS geometry#74256, features#74253.properties AS properties#74257, features#74253.type AS type#74258]
+   :           +- Project [features#74253]
+   :              +- Generate explode(features#74245), false, [features#74253]
+   :                 +- Relation [crs#74244,features#74245,name#74246,type#74247] geojson
+   +- ResolvedHint (strategy=shuffle_replicate_nl)
+      +- Project [Zip Code#74408, Community#74409, cast(Estimated Median Income#74419 as decimal(10,0)) AS Estimated Median Income#74423]
+         +- Project [Zip Code#74408, Community#74409, regexp_replace(Estimated Median Income#74414, ,, , 1) AS Estimated Median Income#74419]
+            +- Project [Zip Code#74408, Community#74409, regexp_replace(Estimated Median Income#74410, \\$, , 1) AS Estimated Median Income#74414]
+               +- Relation [Zip Code#74408,Community#74409,Estimated Median Income#74410] csv
+
+== Analyzed Logical Plan ==
+ZCTA10: string, COMM: string, total_pop: bigint, total_money: decimal(31,0)
+Project [ZCTA10#74286, COMM#74269, total_pop#74456L, (cast(total_houses#74454L as decimal(20,0)) * Estimated Median Income#74423) AS total_money#74475]
++- Join Inner, (cast(ZCTA10#74286 as int) = Zip Code#74408)
+   :- Aggregate [COMM#74269, ZCTA10#74286], [COMM#74269, ZCTA10#74286, sum(HOUSING10#74275L) AS total_houses#74454L, sum(POP_2010#74278L) AS total_pop#74456L]
+   :  +- Filter (((HOUSING10#74275L >= cast(0 as bigint)) AND (POP_2010#74278L >= cast(0 as bigint))) AND (CITY#74267 = Los Angeles))
+   :     +- Project [properties#74257.BG10 AS BG10#74262, properties#74257.BG10FIP10 AS BG10FIP10#74263, properties#74257.BG12 AS BG12#74264, properties#74257.CB10 AS CB10#74265, properties#74257.CEN_FIP13 AS CEN_FIP13#74266, properties#74257.CITY AS CITY#74267, properties#74257.CITYCOM AS CITYCOM#74268, properties#74257.COMM AS COMM#74269, properties#74257.CT10 AS CT10#74270, properties#74257.CT12 AS CT12#74271, properties#74257.CTCB10 AS CTCB10#74272, properties#74257.HD_2012 AS HD_2012#74273L, properties#74257.HD_NAME AS HD_NAME#74274, properties#74257.HOUSING10 AS HOUSING10#74275L, properties#74257.LA_FIP10 AS LA_FIP10#74276, properties#74257.OBJECTID AS OBJECTID#74277L, properties#74257.POP_2010 AS POP_2010#74278L, properties#74257.PUMA10 AS PUMA10#74279, properties#74257.SPA_2012 AS SPA_2012#74280L, properties#74257.SPA_NAME AS SPA_NAME#74281, properties#74257.SUP_DIST AS SUP_DIST#74282, properties#74257.SUP_LABEL AS SUP_LABEL#74283, properties#74257.ShapeSTArea AS ShapeSTArea#74284, properties#74257.ShapeSTLength AS ShapeSTLength#74285, ... 2 more fields]
+   :        +- Project [features#74253.geometry AS geometry#74256, features#74253.properties AS properties#74257, features#74253.type AS type#74258]
+   :           +- Project [features#74253]
+   :              +- Generate explode(features#74245), false, [features#74253]
+   :                 +- Relation [crs#74244,features#74245,name#74246,type#74247] geojson
+   +- ResolvedHint (strategy=shuffle_replicate_nl)
+      +- Project [Zip Code#74408, Community#74409, cast(Estimated Median Income#74419 as decimal(10,0)) AS Estimated Median Income#74423]
+         +- Project [Zip Code#74408, Community#74409, regexp_replace(Estimated Median Income#74414, ,, , 1) AS Estimated Median Income#74419]
+            +- Project [Zip Code#74408, Community#74409, regexp_replace(Estimated Median Income#74410, \\$, , 1) AS Estimated Median Income#74414]
+               +- Relation [Zip Code#74408,Community#74409,Estimated Median Income#74410] csv
+
+== Optimized Logical Plan ==
+Project [ZCTA10#74286, COMM#74269, total_pop#74456L, (cast(total_houses#74454L as decimal(20,0)) * Estimated Median Income#74423) AS total_money#74475]
++- Join Inner, (cast(ZCTA10#74286 as int) = Zip Code#74408), rightHint=(strategy=shuffle_replicate_nl)
+   :- Aggregate [COMM#74269, ZCTA10#74286], [COMM#74269, ZCTA10#74286, sum(HOUSING10#74275L) AS total_houses#74454L, sum(POP_2010#74278L) AS total_pop#74456L]
+   :  +- Project [features#74253.properties.COMM AS COMM#74269, features#74253.properties.HOUSING10 AS HOUSING10#74275L, features#74253.properties.POP_2010 AS POP_2010#74278L, features#74253.properties.ZCTA10 AS ZCTA10#74286]
+   :     +- Filter ((((isnotnull(features#74253.properties.HOUSING10) AND isnotnull(features#74253.properties.POP_2010)) AND isnotnull(features#74253.properties.CITY)) AND (((features#74253.properties.HOUSING10 >= 0) AND (features#74253.properties.POP_2010 >= 0)) AND (features#74253.properties.CITY = Los Angeles))) AND isnotnull(features#74253.properties.ZCTA10))
+   :        +- Generate explode(features#74245), [0], false, [features#74253]
+   :           +- Project [features#74245]
+   :              +- Filter ((size(features#74245, true) > 0) AND isnotnull(features#74245))
+   :                 +- Relation [crs#74244,features#74245,name#74246,type#74247] geojson
+   +- Project [Zip Code#74408, cast(regexp_replace(regexp_replace(Estimated Median Income#74410, \\$, , 1), ,, , 1) as decimal(10,0)) AS Estimated Median Income#74423]
+      +- Filter isnotnull(Zip Code#74408)
+         +- Relation [Zip Code#74408,Community#74409,Estimated Median Income#74410] csv
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [ZCTA10#74286, COMM#74269, total_pop#74456L, (cast(total_houses#74454L as decimal(20,0)) * Estimated Median Income#74423) AS total_money#74475]
+   +- CartesianProduct (cast(ZCTA10#74286 as int) = Zip Code#74408)
+      :- HashAggregate(keys=[COMM#74269, ZCTA10#74286], functions=[sum(HOUSING10#74275L), sum(POP_2010#74278L)], output=[COMM#74269, ZCTA10#74286, total_houses#74454L, total_pop#74456L], schema specialized)
+      :  +- Exchange hashpartitioning(COMM#74269, ZCTA10#74286, 1000), ENSURE_REQUIREMENTS, [plan_id=48237]
+      :     +- HashAggregate(keys=[COMM#74269, ZCTA10#74286], functions=[partial_sum(HOUSING10#74275L), partial_sum(POP_2010#74278L)], output=[COMM#74269, ZCTA10#74286, sum#74493L, sum#74495L], schema specialized)
+      :        +- Project [features#74253.properties.COMM AS COMM#74269, features#74253.properties.HOUSING10 AS HOUSING10#74275L, features#74253.properties.POP_2010 AS POP_2010#74278L, features#74253.properties.ZCTA10 AS ZCTA10#74286]
+      :           +- Filter ((((isnotnull(features#74253.properties.HOUSING10) AND isnotnull(features#74253.properties.POP_2010)) AND isnotnull(features#74253.properties.CITY)) AND (((features#74253.properties.HOUSING10 >= 0) AND (features#74253.properties.POP_2010 >= 0)) AND (features#74253.properties.CITY = Los Angeles))) AND isnotnull(features#74253.properties.ZCTA10))
+      :              +- Generate explode(features#74245), false, [features#74253]
+      :                 +- Filter ((size(features#74245, true) > 0) AND isnotnull(features#74245))
+      :                    +- FileScan geojson [features#74245] Batched: false, DataFilters: [(size(features#74245, true) > 0), isnotnull(features#74245)], Format: GEOJSON, Location: InMemoryFileIndex(1 paths)[s3://initial-notebook-data-bucket-dblab-905418150721/2010_Census_Block..., PartitionFilters: [], PushedFilters: [IsNotNull(features)], ReadSchema: struct<features:array<struct<geometry:binary,properties:struct<BG10:string,BG10FIP10:string,BG12:...
+      +- Project [Zip Code#74408, cast(regexp_replace(regexp_replace(Estimated Median Income#74410, \\$, , 1), ,, , 1) as decimal(10,0)) AS Estimated Median Income#74423]
+         +- Filter isnotnull(Zip Code#74408)
+            +- FileScan csv [Zip Code#74408,Estimated Median Income#74410] Batched: false, DataFilters: [isnotnull(Zip Code#74408)], Format: CSV, Location: InMemoryFileIndex(1 paths)[s3://initial-notebook-data-bucket-dblab-905418150721/LA_income_2015.csv], PartitionFilters: [], PushedFilters: [IsNotNull(Zip Code)], ReadSchema: struct<Zip Code:int,Estimated Median Income:string>"

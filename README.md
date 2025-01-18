@@ -1,6 +1,6 @@
 # AdvancedDB_SemesterProject2024-2025
 
 Students:
-Stefanos Giannakopoulos
-Paraskevi Kasioumi 
+Stefanos Giannakopoulos (el20829)
+Paraskevi Kasioumi (el20122)
 
