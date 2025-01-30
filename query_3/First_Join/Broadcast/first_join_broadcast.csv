@@ -1,0 +1,92 @@
+Join Strategy,Elapsed Time (sec),Execution Plan
+BROADCAST,9.85471510887146,"== Physical Plan ==
+AdaptiveSparkPlan (15)
++- Project (14)
+   +- BroadcastHashJoin Inner BuildRight (13)
+      :- HashAggregate (8)
+      :  +- Exchange (7)
+      :     +- HashAggregate (6)
+      :        +- Project (5)
+      :           +- Filter (4)
+      :              +- Generate (3)
+      :                 +- Filter (2)
+      :                    +- Scan geojson  (1)
+      +- BroadcastExchange (12)
+         +- Project (11)
+            +- Filter (10)
+               +- Scan csv  (9)
+
+
+(1) Scan geojson 
+Output [1]: [features#784]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/2010_Census_Blocks.geojson]
+PushedFilters: [IsNotNull(features)]
+ReadSchema: struct<features:array<struct<geometry:binary,properties:struct<BG10:string,BG10FIP10:string,BG12:string,CB10:string,CEN_FIP13:string,CITY:string,CITYCOM:string,COMM:string,CT10:string,CT12:string,CTCB10:string,HD_2012:bigint,HD_NAME:string,HOUSING10:bigint,LA_FIP10:string,OBJECTID:bigint,POP_2010:bigint,PUMA10:string,SPA_2012:bigint,SPA_NAME:string,SUP_DIST:string,SUP_LABEL:string,ShapeSTArea:double,ShapeSTLength:double,ZCTA10:string>,type:string>>>
+
+(2) Filter
+Input [1]: [features#784]
+Condition : ((size(features#784, true) > 0) AND isnotnull(features#784))
+
+(3) Generate
+Input [1]: [features#784]
+Arguments: explode(features#784), false, [features#792]
+
+(4) Filter
+Input [1]: [features#792]
+Condition : ((((isnotnull(features#792.properties.HOUSING10) AND isnotnull(features#792.properties.POP_2010)) AND isnotnull(features#792.properties.CITY)) AND (((features#792.properties.HOUSING10 >= 0) AND (features#792.properties.POP_2010 >= 0)) AND (features#792.properties.CITY = Los Angeles))) AND isnotnull(features#792.properties.ZCTA10))
+
+(5) Project
+Output [4]: [features#792.properties.COMM AS COMM#808, features#792.properties.HOUSING10 AS HOUSING10#814L, features#792.properties.POP_2010 AS POP_2010#817L, features#792.properties.ZCTA10 AS ZCTA10#825]
+Input [1]: [features#792]
+
+(6) HashAggregate
+Input [4]: [COMM#808, HOUSING10#814L, POP_2010#817L, ZCTA10#825]
+Keys [2]: [COMM#808, ZCTA10#825]
+Functions [2]: [partial_sum(HOUSING10#814L), partial_sum(POP_2010#817L)]
+Aggregate Attributes [2]: [sum#1031L, sum#1033L]
+Results [4]: [COMM#808, ZCTA10#825, sum#1032L, sum#1034L]
+
+(7) Exchange
+Input [4]: [COMM#808, ZCTA10#825, sum#1032L, sum#1034L]
+Arguments: hashpartitioning(COMM#808, ZCTA10#825, 1000), ENSURE_REQUIREMENTS, [plan_id=1519]
+
+(8) HashAggregate
+Input [4]: [COMM#808, ZCTA10#825, sum#1032L, sum#1034L]
+Keys [2]: [COMM#808, ZCTA10#825]
+Functions [2]: [sum(HOUSING10#814L), sum(POP_2010#817L)]
+Aggregate Attributes [2]: [sum(HOUSING10#814L)#992L, sum(POP_2010#817L)#994L]
+Results [4]: [COMM#808, ZCTA10#825, sum(HOUSING10#814L)#992L AS total_houses#993L, sum(POP_2010#817L)#994L AS total_pop#995L]
+
+(9) Scan csv 
+Output [2]: [Zip Code#947, Estimated Median Income#949]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/LA_income_2015.csv]
+PushedFilters: [IsNotNull(Zip Code)]
+ReadSchema: struct<Zip Code:int,Estimated Median Income:string>
+
+(10) Filter
+Input [2]: [Zip Code#947, Estimated Median Income#949]
+Condition : isnotnull(Zip Code#947)
+
+(11) Project
+Output [2]: [Zip Code#947, cast(regexp_replace(regexp_replace(Estimated Median Income#949, \\$, , 1), ,, , 1) as decimal(10,0)) AS Estimated Median Income#962]
+Input [2]: [Zip Code#947, Estimated Median Income#949]
+
+(12) BroadcastExchange
+Input [2]: [Zip Code#947, Estimated Median Income#962]
+Arguments: HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=1522]
+
+(13) BroadcastHashJoin
+Left keys [1]: [cast(ZCTA10#825 as int)]
+Right keys [1]: [Zip Code#947]
+Join type: Inner
+Join condition: None
+
+(14) Project
+Output [4]: [ZCTA10#825, COMM#808, total_pop#995L, (cast(total_houses#993L as decimal(20,0)) * Estimated Median Income#962) AS total_money#1014]
+Input [6]: [COMM#808, ZCTA10#825, total_houses#993L, total_pop#995L, Zip Code#947, Estimated Median Income#962]
+
+(15) AdaptiveSparkPlan
+Output [4]: [ZCTA10#825, COMM#808, total_pop#995L, total_money#1014]
+Arguments: isFinalPlan=false"
