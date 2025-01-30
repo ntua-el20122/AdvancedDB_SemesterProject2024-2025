@@ -1,0 +1,226 @@
+Join Strategy,Elapsed Time (sec),Execution Plan
+MERGE,17.171138286590576,"== Physical Plan ==
+AdaptiveSparkPlan (38)
++- Project (37)
+   +- SortMergeJoin FullOuter (36)
+      :- Sort (21)
+      :  +- HashAggregate (20)
+      :     +- Exchange (19)
+      :        +- HashAggregate (18)
+      :           +- Project (17)
+      :              +- SortMergeJoin Inner (16)
+      :                 :- Sort (10)
+      :                 :  +- Exchange (9)
+      :                 :     +- HashAggregate (8)
+      :                 :        +- Exchange (7)
+      :                 :           +- HashAggregate (6)
+      :                 :              +- Project (5)
+      :                 :                 +- Filter (4)
+      :                 :                    +- Generate (3)
+      :                 :                       +- Filter (2)
+      :                 :                          +- Scan geojson  (1)
+      :                 +- Sort (15)
+      :                    +- Exchange (14)
+      :                       +- Project (13)
+      :                          +- Filter (12)
+      :                             +- Scan csv  (11)
+      +- Sort (35)
+         +- HashAggregate (34)
+            +- Exchange (33)
+               +- HashAggregate (32)
+                  +- Project (31)
+                     +- RangeJoin (30)
+                        :- Project (24)
+                        :  +- Filter (23)
+                        :     +- Scan csv  (22)
+                        +- Project (29)
+                           +- Filter (28)
+                              +- Generate (27)
+                                 +- Filter (26)
+                                    +- Scan geojson  (25)
+
+
+(1) Scan geojson 
+Output [1]: [features#1543]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/2010_Census_Blocks.geojson]
+PushedFilters: [IsNotNull(features)]
+ReadSchema: struct<features:array<struct<geometry:binary,properties:struct<BG10:string,BG10FIP10:string,BG12:string,CB10:string,CEN_FIP13:string,CITY:string,CITYCOM:string,COMM:string,CT10:string,CT12:string,CTCB10:string,HD_2012:bigint,HD_NAME:string,HOUSING10:bigint,LA_FIP10:string,OBJECTID:bigint,POP_2010:bigint,PUMA10:string,SPA_2012:bigint,SPA_NAME:string,SUP_DIST:string,SUP_LABEL:string,ShapeSTArea:double,ShapeSTLength:double,ZCTA10:string>,type:string>>>
+
+(2) Filter
+Input [1]: [features#1543]
+Condition : ((size(features#1543, true) > 0) AND isnotnull(features#1543))
+
+(3) Generate
+Input [1]: [features#1543]
+Arguments: explode(features#1543), false, [features#1551]
+
+(4) Filter
+Input [1]: [features#1551]
+Condition : ((((isnotnull(features#1551.properties.HOUSING10) AND isnotnull(features#1551.properties.POP_2010)) AND isnotnull(features#1551.properties.CITY)) AND (((features#1551.properties.HOUSING10 >= 0) AND (features#1551.properties.POP_2010 >= 0)) AND (features#1551.properties.CITY = Los Angeles))) AND isnotnull(features#1551.properties.ZCTA10))
+
+(5) Project
+Output [4]: [features#1551.properties.COMM AS COMM#1567, features#1551.properties.HOUSING10 AS HOUSING10#1573L, features#1551.properties.POP_2010 AS POP_2010#1576L, features#1551.properties.ZCTA10 AS ZCTA10#1584]
+Input [1]: [features#1551]
+
+(6) HashAggregate
+Input [4]: [COMM#1567, HOUSING10#1573L, POP_2010#1576L, ZCTA10#1584]
+Keys [2]: [COMM#1567, ZCTA10#1584]
+Functions [2]: [partial_sum(HOUSING10#1573L), partial_sum(POP_2010#1576L)]
+Aggregate Attributes [2]: [sum#1790L, sum#1792L]
+Results [4]: [COMM#1567, ZCTA10#1584, sum#1791L, sum#1793L]
+
+(7) Exchange
+Input [4]: [COMM#1567, ZCTA10#1584, sum#1791L, sum#1793L]
+Arguments: hashpartitioning(COMM#1567, ZCTA10#1584, 1000), ENSURE_REQUIREMENTS, [plan_id=3895]
+
+(8) HashAggregate
+Input [4]: [COMM#1567, ZCTA10#1584, sum#1791L, sum#1793L]
+Keys [2]: [COMM#1567, ZCTA10#1584]
+Functions [2]: [sum(HOUSING10#1573L), sum(POP_2010#1576L)]
+Aggregate Attributes [2]: [sum(HOUSING10#1573L)#1751L, sum(POP_2010#1576L)#1753L]
+Results [4]: [COMM#1567, ZCTA10#1584, sum(HOUSING10#1573L)#1751L AS total_houses#1752L, sum(POP_2010#1576L)#1753L AS total_pop#1754L]
+
+(9) Exchange
+Input [4]: [COMM#1567, ZCTA10#1584, total_houses#1752L, total_pop#1754L]
+Arguments: hashpartitioning(cast(ZCTA10#1584 as int), 1000), ENSURE_REQUIREMENTS, [plan_id=3899]
+
+(10) Sort
+Input [4]: [COMM#1567, ZCTA10#1584, total_houses#1752L, total_pop#1754L]
+Arguments: [cast(ZCTA10#1584 as int) ASC NULLS FIRST], false, 0
+
+(11) Scan csv 
+Output [2]: [Zip Code#1706, Estimated Median Income#1708]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/LA_income_2015.csv]
+PushedFilters: [IsNotNull(Zip Code)]
+ReadSchema: struct<Zip Code:int,Estimated Median Income:string>
+
+(12) Filter
+Input [2]: [Zip Code#1706, Estimated Median Income#1708]
+Condition : isnotnull(Zip Code#1706)
+
+(13) Project
+Output [2]: [Zip Code#1706, cast(regexp_replace(regexp_replace(Estimated Median Income#1708, \\$, , 1), ,, , 1) as decimal(10,0)) AS Estimated Median Income#1721]
+Input [2]: [Zip Code#1706, Estimated Median Income#1708]
+
+(14) Exchange
+Input [2]: [Zip Code#1706, Estimated Median Income#1721]
+Arguments: hashpartitioning(Zip Code#1706, 1000), ENSURE_REQUIREMENTS, [plan_id=3900]
+
+(15) Sort
+Input [2]: [Zip Code#1706, Estimated Median Income#1721]
+Arguments: [Zip Code#1706 ASC NULLS FIRST], false, 0
+
+(16) SortMergeJoin
+Left keys [1]: [cast(ZCTA10#1584 as int)]
+Right keys [1]: [Zip Code#1706]
+Join type: Inner
+Join condition: None
+
+(17) Project
+Output [3]: [COMM#1567, total_pop#1754L, (cast(total_houses#1752L as decimal(20,0)) * Estimated Median Income#1721) AS total_money#1773]
+Input [6]: [COMM#1567, ZCTA10#1584, total_houses#1752L, total_pop#1754L, Zip Code#1706, Estimated Median Income#1721]
+
+(18) HashAggregate
+Input [3]: [COMM#1567, total_pop#1754L, total_money#1773]
+Keys [1]: [COMM#1567]
+Functions [2]: [partial_sum(total_money#1773), partial_sum(total_pop#1754L)]
+Aggregate Attributes [3]: [sum#2212, isEmpty#2213, sum#2216L]
+Results [4]: [COMM#1567, sum#2214, isEmpty#2215, sum#2217L]
+
+(19) Exchange
+Input [4]: [COMM#1567, sum#2214, isEmpty#2215, sum#2217L]
+Arguments: hashpartitioning(COMM#1567, 1000), ENSURE_REQUIREMENTS, [plan_id=3907]
+
+(20) HashAggregate
+Input [4]: [COMM#1567, sum#2214, isEmpty#2215, sum#2217L]
+Keys [1]: [COMM#1567]
+Functions [2]: [sum(total_money#1773), sum(total_pop#1754L)]
+Aggregate Attributes [2]: [sum(total_money#1773)#1836, sum(total_pop#1754L)#1838L]
+Results [3]: [COMM#1567, sum(total_money#1773)#1836 AS total_money#1837, sum(total_pop#1754L)#1838L AS total_pop#1839L]
+
+(21) Sort
+Input [3]: [COMM#1567, total_money#1837, total_pop#1839L]
+Arguments: [COMM#1567 ASC NULLS FIRST], false, 0
+
+(22) Scan csv 
+Output [2]: [LAT#1887, LON#1888]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/CrimeData/Crime_Data_from_2010_to_2019_20241101.csv, ... 1 entries]
+PushedFilters: [IsNotNull(LAT), IsNotNull(LON)]
+ReadSchema: struct<LAT:string,LON:string>
+
+(23) Filter
+Input [2]: [LAT#1887, LON#1888]
+Condition : ((((isnotnull(LAT#1887) AND isnotnull(LON#1888)) AND NOT (cast(LAT#1887 as int) = 0)) AND NOT (cast(LON#1888 as int) = 0)) AND isnotnull( **org.apache.spark.sql.sedona_sql.expressions.ST_Point**  ))
+
+(24) Project
+Output [1]: [ **org.apache.spark.sql.sedona_sql.expressions.ST_Point**   AS geom#1921]
+Input [2]: [LAT#1887, LON#1888]
+
+(25) Scan geojson 
+Output [1]: [features#2159]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/2010_Census_Blocks.geojson]
+PushedFilters: [IsNotNull(features)]
+ReadSchema: struct<features:array<struct<geometry:binary,properties:struct<BG10:string,BG10FIP10:string,BG12:string,CB10:string,CEN_FIP13:string,CITY:string,CITYCOM:string,COMM:string,CT10:string,CT12:string,CTCB10:string,HD_2012:bigint,HD_NAME:string,HOUSING10:bigint,LA_FIP10:string,OBJECTID:bigint,POP_2010:bigint,PUMA10:string,SPA_2012:bigint,SPA_NAME:string,SUP_DIST:string,SUP_LABEL:string,ShapeSTArea:double,ShapeSTLength:double,ZCTA10:string>,type:string>>>
+
+(26) Filter
+Input [1]: [features#2159]
+Condition : ((size(features#2159, true) > 0) AND isnotnull(features#2159))
+
+(27) Generate
+Input [1]: [features#2159]
+Arguments: explode(features#2159), false, [features#1551]
+
+(28) Filter
+Input [1]: [features#1551]
+Condition : ((((isnotnull(features#1551.properties.HOUSING10) AND isnotnull(features#1551.properties.POP_2010)) AND isnotnull(features#1551.properties.CITY)) AND (((features#1551.properties.HOUSING10 >= 0) AND (features#1551.properties.POP_2010 >= 0)) AND (features#1551.properties.CITY = Los Angeles))) AND isnotnull(features#1551.geometry))
+
+(29) Project
+Output [2]: [features#1551.properties.COMM AS COMM#2169, features#1551.geometry AS geometry#1554]
+Input [1]: [features#1551]
+
+(30) RangeJoin
+Arguments: geom#1921: geometry, geometry#1554: geometry, WITHIN
+
+(31) Project
+Output [1]: [COMM#2169]
+Input [3]: [geom#1921, COMM#2169, geometry#1554]
+
+(32) HashAggregate
+Input [1]: [COMM#2169]
+Keys [1]: [COMM#2169]
+Functions [1]: [partial_count(1)]
+Aggregate Attributes [1]: [count#2218L]
+Results [2]: [COMM#2169, count#2219L]
+
+(33) Exchange
+Input [2]: [COMM#2169, count#2219L]
+Arguments: hashpartitioning(COMM#2169, 1000), ENSURE_REQUIREMENTS, [plan_id=3909]
+
+(34) HashAggregate
+Input [2]: [COMM#2169, count#2219L]
+Keys [1]: [COMM#2169]
+Functions [1]: [count(1)]
+Aggregate Attributes [1]: [count(1)#2154L]
+Results [2]: [COMM#2169, count(1)#2154L AS count#2155L]
+
+(35) Sort
+Input [2]: [COMM#2169, count#2155L]
+Arguments: [COMM#2169 ASC NULLS FIRST], false, 0
+
+(36) SortMergeJoin
+Left keys [1]: [COMM#1567]
+Right keys [1]: [COMM#2169]
+Join type: FullOuter
+Join condition: None
+
+(37) Project
+Output [3]: [COMM#1567, (total_money#1837 / cast(total_pop#1839L as decimal(20,0))) AS Annual Average Income Per Person ($)#2198, (cast(count#2155L as double) / cast(total_pop#1839L as double)) AS Rate of Total Crimes Per Person#2199]
+Input [5]: [COMM#1567, total_money#1837, total_pop#1839L, COMM#2169, count#2155L]
+
+(38) AdaptiveSparkPlan
+Output [3]: [COMM#1567, Annual Average Income Per Person ($)#2198, Rate of Total Crimes Per Person#2199]
+Arguments: isFinalPlan=false"

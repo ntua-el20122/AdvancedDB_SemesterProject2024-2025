@@ -1,0 +1,97 @@
+Join Strategy,Elapsed Time (sec),Execution Plan
+SHUFFLE_HASH,12.333237409591675,"== Physical Plan ==
+AdaptiveSparkPlan (16)
++- Project (15)
+   +- ShuffledHashJoin Inner BuildRight (14)
+      :- Exchange (9)
+      :  +- HashAggregate (8)
+      :     +- Exchange (7)
+      :        +- HashAggregate (6)
+      :           +- Project (5)
+      :              +- Filter (4)
+      :                 +- Generate (3)
+      :                    +- Filter (2)
+      :                       +- Scan geojson  (1)
+      +- Exchange (13)
+         +- Project (12)
+            +- Filter (11)
+               +- Scan csv  (10)
+
+
+(1) Scan geojson 
+Output [1]: [features#2305]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/2010_Census_Blocks.geojson]
+PushedFilters: [IsNotNull(features)]
+ReadSchema: struct<features:array<struct<geometry:binary,properties:struct<BG10:string,BG10FIP10:string,BG12:string,CB10:string,CEN_FIP13:string,CITY:string,CITYCOM:string,COMM:string,CT10:string,CT12:string,CTCB10:string,HD_2012:bigint,HD_NAME:string,HOUSING10:bigint,LA_FIP10:string,OBJECTID:bigint,POP_2010:bigint,PUMA10:string,SPA_2012:bigint,SPA_NAME:string,SUP_DIST:string,SUP_LABEL:string,ShapeSTArea:double,ShapeSTLength:double,ZCTA10:string>,type:string>>>
+
+(2) Filter
+Input [1]: [features#2305]
+Condition : ((size(features#2305, true) > 0) AND isnotnull(features#2305))
+
+(3) Generate
+Input [1]: [features#2305]
+Arguments: explode(features#2305), false, [features#2313]
+
+(4) Filter
+Input [1]: [features#2313]
+Condition : ((((isnotnull(features#2313.properties.HOUSING10) AND isnotnull(features#2313.properties.POP_2010)) AND isnotnull(features#2313.properties.CITY)) AND (((features#2313.properties.HOUSING10 >= 0) AND (features#2313.properties.POP_2010 >= 0)) AND (features#2313.properties.CITY = Los Angeles))) AND isnotnull(features#2313.properties.ZCTA10))
+
+(5) Project
+Output [4]: [features#2313.properties.COMM AS COMM#2329, features#2313.properties.HOUSING10 AS HOUSING10#2335L, features#2313.properties.POP_2010 AS POP_2010#2338L, features#2313.properties.ZCTA10 AS ZCTA10#2346]
+Input [1]: [features#2313]
+
+(6) HashAggregate
+Input [4]: [COMM#2329, HOUSING10#2335L, POP_2010#2338L, ZCTA10#2346]
+Keys [2]: [COMM#2329, ZCTA10#2346]
+Functions [2]: [partial_sum(HOUSING10#2335L), partial_sum(POP_2010#2338L)]
+Aggregate Attributes [2]: [sum#2552L, sum#2554L]
+Results [4]: [COMM#2329, ZCTA10#2346, sum#2553L, sum#2555L]
+
+(7) Exchange
+Input [4]: [COMM#2329, ZCTA10#2346, sum#2553L, sum#2555L]
+Arguments: hashpartitioning(COMM#2329, ZCTA10#2346, 1000), ENSURE_REQUIREMENTS, [plan_id=4358]
+
+(8) HashAggregate
+Input [4]: [COMM#2329, ZCTA10#2346, sum#2553L, sum#2555L]
+Keys [2]: [COMM#2329, ZCTA10#2346]
+Functions [2]: [sum(HOUSING10#2335L), sum(POP_2010#2338L)]
+Aggregate Attributes [2]: [sum(HOUSING10#2335L)#2513L, sum(POP_2010#2338L)#2515L]
+Results [4]: [COMM#2329, ZCTA10#2346, sum(HOUSING10#2335L)#2513L AS total_houses#2514L, sum(POP_2010#2338L)#2515L AS total_pop#2516L]
+
+(9) Exchange
+Input [4]: [COMM#2329, ZCTA10#2346, total_houses#2514L, total_pop#2516L]
+Arguments: hashpartitioning(cast(ZCTA10#2346 as int), 1000), ENSURE_REQUIREMENTS, [plan_id=4362]
+
+(10) Scan csv 
+Output [2]: [Zip Code#2468, Estimated Median Income#2470]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/LA_income_2015.csv]
+PushedFilters: [IsNotNull(Zip Code)]
+ReadSchema: struct<Zip Code:int,Estimated Median Income:string>
+
+(11) Filter
+Input [2]: [Zip Code#2468, Estimated Median Income#2470]
+Condition : isnotnull(Zip Code#2468)
+
+(12) Project
+Output [2]: [Zip Code#2468, cast(regexp_replace(regexp_replace(Estimated Median Income#2470, \\$, , 1), ,, , 1) as decimal(10,0)) AS Estimated Median Income#2483]
+Input [2]: [Zip Code#2468, Estimated Median Income#2470]
+
+(13) Exchange
+Input [2]: [Zip Code#2468, Estimated Median Income#2483]
+Arguments: hashpartitioning(Zip Code#2468, 1000), ENSURE_REQUIREMENTS, [plan_id=4363]
+
+(14) ShuffledHashJoin
+Left keys [1]: [cast(ZCTA10#2346 as int)]
+Right keys [1]: [Zip Code#2468]
+Join type: Inner
+Join condition: None
+
+(15) Project
+Output [4]: [ZCTA10#2346, COMM#2329, total_pop#2516L, (cast(total_houses#2514L as decimal(20,0)) * Estimated Median Income#2483) AS total_money#2535]
+Input [6]: [COMM#2329, ZCTA10#2346, total_houses#2514L, total_pop#2516L, Zip Code#2468, Estimated Median Income#2483]
+
+(16) AdaptiveSparkPlan
+Output [4]: [ZCTA10#2346, COMM#2329, total_pop#2516L, total_money#2535]
+Arguments: isFinalPlan=false"

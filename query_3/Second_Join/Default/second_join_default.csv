@@ -1,0 +1,53 @@
+Join Strategy,Elapsed Time (sec),Execution Plan
+DEFAULT,14.475574350357056,"== Physical Plan ==
+RangeJoin (9)
+:- Project (3)
+:  +- Filter (2)
+:     +- Scan csv  (1)
++- * Project (8)
+   +- * Filter (7)
+      +- * Generate (6)
+         +- * Filter (5)
+            +- Scan geojson  (4)
+
+
+(1) Scan csv 
+Output [3]: [DR_NO#343, LAT#369, LON#370]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/CrimeData/Crime_Data_from_2010_to_2019_20241101.csv, ... 1 entries]
+PushedFilters: [IsNotNull(LAT), IsNotNull(LON)]
+ReadSchema: struct<DR_NO:string,LAT:string,LON:string>
+
+(2) Filter
+Input [3]: [DR_NO#343, LAT#369, LON#370]
+Condition : ((((isnotnull(LAT#369) AND isnotnull(LON#370)) AND NOT (cast(LAT#369 as int) = 0)) AND NOT (cast(LON#370 as int) = 0)) AND isnotnull( **org.apache.spark.sql.sedona_sql.expressions.ST_Point**  ))
+
+(3) Project
+Output [4]: [DR_NO#343, LAT#369, LON#370,  **org.apache.spark.sql.sedona_sql.expressions.ST_Point**   AS geom#403]
+Input [3]: [DR_NO#343, LAT#369, LON#370]
+
+(4) Scan geojson 
+Output [1]: [features#25]
+Batched: false
+Location: InMemoryFileIndex [s3://initial-notebook-data-bucket-dblab-905418150721/2010_Census_Blocks.geojson]
+PushedFilters: [IsNotNull(features)]
+ReadSchema: struct<features:array<struct<geometry:binary,properties:struct<BG10:string,BG10FIP10:string,BG12:string,CB10:string,CEN_FIP13:string,CITY:string,CITYCOM:string,COMM:string,CT10:string,CT12:string,CTCB10:string,HD_2012:bigint,HD_NAME:string,HOUSING10:bigint,LA_FIP10:string,OBJECTID:bigint,POP_2010:bigint,PUMA10:string,SPA_2012:bigint,SPA_NAME:string,SUP_DIST:string,SUP_LABEL:string,ShapeSTArea:double,ShapeSTLength:double,ZCTA10:string>,type:string>>>
+
+(5) Filter [codegen id : 1]
+Input [1]: [features#25]
+Condition : ((size(features#25, true) > 0) AND isnotnull(features#25))
+
+(6) Generate [codegen id : 1]
+Input [1]: [features#25]
+Arguments: explode(features#25), false, [features#33]
+
+(7) Filter [codegen id : 1]
+Input [1]: [features#33]
+Condition : ((((isnotnull(features#33.properties.HOUSING10) AND isnotnull(features#33.properties.POP_2010)) AND isnotnull(features#33.properties.CITY)) AND (((features#33.properties.HOUSING10 >= 0) AND (features#33.properties.POP_2010 >= 0)) AND (features#33.properties.CITY = Los Angeles))) AND isnotnull(features#33.geometry))
+
+(8) Project [codegen id : 1]
+Output [26]: [features#33.properties.BG10 AS BG10#42, features#33.properties.BG10FIP10 AS BG10FIP10#43, features#33.properties.BG12 AS BG12#44, features#33.properties.CB10 AS CB10#45, features#33.properties.CEN_FIP13 AS CEN_FIP13#46, features#33.properties.CITY AS CITY#47, features#33.properties.CITYCOM AS CITYCOM#48, features#33.properties.COMM AS COMM#49, features#33.properties.CT10 AS CT10#50, features#33.properties.CT12 AS CT12#51, features#33.properties.CTCB10 AS CTCB10#52, features#33.properties.HD_2012 AS HD_2012#53L, features#33.properties.HD_NAME AS HD_NAME#54, features#33.properties.HOUSING10 AS HOUSING10#55L, features#33.properties.LA_FIP10 AS LA_FIP10#56, features#33.properties.OBJECTID AS OBJECTID#57L, features#33.properties.POP_2010 AS POP_2010#58L, features#33.properties.PUMA10 AS PUMA10#59, features#33.properties.SPA_2012 AS SPA_2012#60L, features#33.properties.SPA_NAME AS SPA_NAME#61, features#33.properties.SUP_DIST AS SUP_DIST#62, features#33.properties.SUP_LABEL AS SUP_LABEL#63, features#33.properties.ShapeSTArea AS ShapeSTArea#64, features#33.properties.ShapeSTLength AS ShapeSTLength#65, features#33.properties.ZCTA10 AS ZCTA10#66, features#33.geometry AS geometry#36]
+Input [1]: [features#33]
+
+(9) RangeJoin
+Arguments: geom#403: geometry, geometry#36: geometry, WITHIN"
